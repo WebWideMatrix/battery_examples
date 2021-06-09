@@ -31,6 +31,9 @@ class Message(BaseModel):
 app = FastAPI()
 settings = Settings()
 
+#
+#   LIFECYCLE EVENTS
+#
 
 @app.on_event("startup")
 async def startup_event():
@@ -52,6 +55,24 @@ async def startup_event():
     elif r.status_code != 201:
         raise RuntimeError(f'Failed to start battery - got {r.status_code} error from bldg server: {r.text}')
     print(f'Battery attached to bldg {settings.bldg_address}')
+
+
+@app.on_event("shutdown")
+def shutdown_event():
+    data = {"bldg_address": settings.bldg_address}
+    url = f'{settings.bldg_server_url}/v1/batteries/detach'
+    print(f'Connecting to bldg-server {url}...')
+    r = requests.post(url, json=data)
+    if r.status_code == 404:
+        raise RuntimeError(f'Failed to detach battery - there is no active battery attached to {settings.bldg_address}')
+    elif r.status_code != 204:
+        raise RuntimeError(f'Failed to detach battery - got {r.status_code} error from bldg server: {r.text}')
+    print(f'Battery detached from bldg {settings.bldg_address}')
+
+
+#
+#   WEBHOOKS
+#
 
 @app.post("/v1/on_message")
 def process_message(msg: Message):
