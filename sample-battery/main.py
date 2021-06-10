@@ -136,7 +136,7 @@ def classify_intent(msg: str) -> Intent:
     else:
         return Intent.UNKNOWN
 
-def similar_to_samples(msg, samples):
+def similar_to_samples(msg, samples) -> bool:
     return any(sample in msg for sample in samples)
 
 
