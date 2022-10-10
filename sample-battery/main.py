@@ -113,6 +113,7 @@ def say(msg: str, recipient: str):
     message = {
         "action_type": "SAY",
         "resident_email": settings.battery_owner,
+        "bldg_url": settings.bldg_url,
         "say_flr": get_flr(settings.bldg_address),
         "say_flr_url": get_flr(settings.bldg_url),
         "say_location": settings.bldg_address,
@@ -122,7 +123,7 @@ def say(msg: str, recipient: str):
         "say_text": msg,
         "say_time": get_current_time_epoch()
     }
-    url = f'{settings.bldg_server_url}/v1/residents/act'
+    url = f'{settings.bldg_server_url}/v1/batteries/act'
     r = requests.post(url, json=message)
     if r.status_code != 200 and r.status_code != 201:
         raise RuntimeError(f'Failed to say - got {r.status_code} error from bldg server: {r.text}')
