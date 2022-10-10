@@ -1,5 +1,6 @@
 from enum import Enum
 from datetime import datetime
+from time import time
 
 from fastapi import FastAPI
 from pydantic import BaseModel
@@ -10,22 +11,30 @@ from bldg_utils import get_flr
 
 
 class Settings(BaseSettings):
-    bldg_server_url: str = "https://api.w2m.site"
-    bldg_address: str = "g-b(17,24)-l0-b(12,2)"
+    bldg_server_url: str = "http://localhost:4000"
+    bldg_address: str = "g/b(16,92)/l0/b(18,18)"
+    bldg_url: str = "g/fromTeal/l0/test-decision"
     battery_type: str = "sample-clock"
     battery_vendor: str = "w2m"
     battery_version: str = "0.0.1"
-    callback_url: str = "http://localhost:3000/v1/on_message"
+    battery_owner: str = "dibaunaumh@gmail.com"
+    callback_url: str = "http://localhost:8000/v1/on_message"
 
     class Config:
         env_file = ".env"
     
 
 class Message(BaseModel):
-    flr: str
-    message: str
-    sender: str
-    sender_name: str
+    action_type: str
+    resident_email: str
+    say_flr: str
+    say_flr_url: str
+    say_location: str
+    say_mimetype: str
+    say_recipient: str
+    say_speaker: str
+    say_text: str
+    say_time: int
 
 
 
@@ -40,12 +49,12 @@ settings = Settings()
 
 @app.post("/v1/on_message")
 def process_message(msg: Message):
-    print(f'🔋 handling msg from {msg.sender}: {msg.message}')
-    intent = classify_intent(msg.message)
+    print(f'🔋 handling msg from {msg.say_speaker}: {msg.say_text}')
+    intent = classify_intent(msg.say_text)
     if intent == Intent.ASK_FOR_TIME:
         time = get_current_time()
-        say(f'The time is {time}')
-    return {"sender": msg.sender, "message": msg.message}
+        say(f'The time is {time}', msg.say_speaker)
+    return {"say_speaker": msg.say_speaker, "message": msg.say_text}
 
 
 
@@ -100,17 +109,22 @@ def detach():
     print(f'🔋 detached from bldg {settings.bldg_address}')
 
 
-def say(msg: str):
+def say(msg: str, recipient: str):
     message = {
-        "sender": settings.battery_type,
-        "sender_name": settings.battery_type,
-        "message": msg,
-        "flr": get_flr(settings.bldg_address)
+        "action_type": "SAY",
+        "resident_email": settings.battery_owner,
+        "say_flr": get_flr(settings.bldg_address),
+        "say_flr_url": get_flr(settings.bldg_url),
+        "say_location": settings.bldg_address,
+        "say_mimetype": "text/plain",
+        "say_recipient": recipient,
+        "say_speaker": settings.battery_type,
+        "say_text": msg,
+        "say_time": get_current_time_epoch()
     }
-    data = {"message": message}
-    url = f'{settings.bldg_server_url}/v1/messages/say'
-    r = requests.post(url, json=data)
-    if r.status_code != 201:
+    url = f'{settings.bldg_server_url}/v1/residents/act'
+    r = requests.post(url, json=message)
+    if r.status_code != 200 and r.status_code != 201:
         raise RuntimeError(f'Failed to say - got {r.status_code} error from bldg server: {r.text}')
     print(f'🔋 said: {msg}')
 
@@ -126,7 +140,13 @@ class Intent(Enum):
 
 ASK_FOR_TIME_SAMPLES = [
     "what time is it",
-    "what's the time"
+    "what time is it?",
+    "what's the time",
+    "what's the time?",
+    "/what time is it",
+    "/what time is it?",
+    "/what's the time",
+    "/what's the time?"
 ]
 
 def classify_intent(msg: str) -> Intent:
@@ -146,3 +166,6 @@ def similar_to_samples(msg, samples) -> bool:
 
 def get_current_time() -> str:
     return datetime.now().strftime("%H:%M")
+
+def get_current_time_epoch() -> int:
+    return round(time()*1000)
