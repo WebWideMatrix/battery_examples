@@ -12,8 +12,8 @@ from bldg_utils import get_flr
 
 class Settings(BaseSettings):
     bldg_server_url: str = "http://localhost:4000"
-    bldg_address: str = "g/b(16,92)/l0/b(18,18)"
     bldg_url: str = "g/fromTeal/l0/test-decision"
+    bldg_address: str = "g/b(16,92)/l0/b(18,18)"
     battery_type: str = "sample-clock"
     battery_vendor: str = "w2m"
     battery_version: str = "0.0.1"
@@ -83,7 +83,7 @@ def attach():
         "battery_type": settings.battery_type,
         "battery_vendor": settings.battery_vendor,
         "battery_version": settings.battery_version,
-        "bldg_address": settings.bldg_address,
+        "bldg_url": settings.bldg_url,
         "callback_url": settings.callback_url,
         "flr": get_flr(settings.bldg_address)
     }
@@ -92,21 +92,21 @@ def attach():
     print(f'Connecting to bldg-server {url}...')
     r = requests.post(url, json=data)
     if r.status_code == 422:
-        raise RuntimeError(f'Failed to start battery - another battery is already attached at {settings.bldg_address}')
+        raise RuntimeError(f'Failed to start battery - another battery is already attached to {settings.bldg_url}')
     elif r.status_code != 201:
         raise RuntimeError(f'Failed to start battery - got {r.status_code} error from bldg server: {r.text}')
-    print(f'🔋 attached to bldg {settings.bldg_address}')
+    print(f'🔋 attached to bldg {settings.bldg_url}')
 
 
 def detach():
-    data = {"bldg_address": settings.bldg_address}
+    data = {"bldg_url": settings.bldg_url}
     url = f'{settings.bldg_server_url}/v1/batteries/detach'
     r = requests.post(url, json=data)
     if r.status_code == 404:
-        raise RuntimeError(f'Failed to detach battery - there is no active battery attached to {settings.bldg_address}')
+        raise RuntimeError(f'Failed to detach battery - there is no active battery attached to {settings.bldg_url}')
     elif r.status_code != 204:
         raise RuntimeError(f'Failed to detach battery - got {r.status_code} error from bldg server: {r.text}')
-    print(f'🔋 detached from bldg {settings.bldg_address}')
+    print(f'🔋 detached from bldg {settings.bldg_url}')
 
 
 def say(msg: str, recipient: str):
