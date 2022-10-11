@@ -120,8 +120,7 @@ def say(msg: str, recipient: str):
         "say_mimetype": "text/plain",
         "say_recipient": recipient,
         "say_speaker": settings.battery_type,
-        "say_text": msg,
-        "say_time": get_current_time_epoch()
+        "say_text": msg
     }
     url = f'{settings.bldg_server_url}/v1/batteries/act'
     r = requests.post(url, json=message)
@@ -167,6 +166,3 @@ def similar_to_samples(msg, samples) -> bool:
 
 def get_current_time() -> str:
     return datetime.now().strftime("%H:%M")
-
-def get_current_time_epoch() -> int:
-    return round(time()*1000)
